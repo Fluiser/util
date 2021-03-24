@@ -15,7 +15,7 @@ static const char* help_flags[] = {
 
 typedef uint64_t lword;
 
-auto fsize(const char* path)
+decltype(std::fstream().tellg()) fsize(const char* path)
 {
     std::fstream file(path, std::ios::binary | std::ios::ate | std::fstream::in);
     return file.tellg();
