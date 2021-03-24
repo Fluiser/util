@@ -10,7 +10,7 @@ static const char* help_flags[] = {
     "--in <file> - input file for instructions",
     "--out <file=out> - output file for instructions",
     "--key <str> - key for instructions.",
-    "--chunk <size> - size of 1 tik instructions"
+    "--chunk-size <size> - size of 1 tik instructions (in mb)"
 };
 
 typedef uint64_t lword;
