@@ -8,6 +8,12 @@
 #endif
 
 /*
+	Если это кто-то действительно сочтёт за мерой безопасности, то это будет забавно.
+	Просто не более чем способ отбить ленивыю дешифровку.
+	Хотя LWORD в 128бит может создать проблем как и с размером файла, так и с подбором ключа.
+*/
+
+/*
 	memory out must be long.
 	size out = sizeof(out)*sizeof(input)
 */
@@ -15,7 +21,10 @@ void encode(const char* input, char* out, LWORD code, size_t size)
 {
 	for(size_t i = 0, _ptr = 0; i < size; ++i, ++_ptr)
 	{
-		((LWORD*)out)[_ptr] = input[i] + code;
+		if(i%2)
+			((LWORD*)out)[_ptr] = input[i] + code;
+		else 
+			((LWORD*)out)[_ptr] = input[i] - code;
 	}
 }
 
@@ -25,7 +34,10 @@ void decode(const char* input, char* out, LWORD code, size_t size)
 	std::cout << "SIZE: " << size << "\n";
 	for(size_t i = 0, _ptr = 0; i < size; ++_ptr, ++i)
 	{
-		out[i] = ((LWORD*)input)[_ptr]-code;
+		if(i%2)
+			out[i] = ((LWORD*)input)[_ptr]-code;
+		else
+			out[i] = ((LWORD*)input)[_ptr]+code;
 	}
 }
 #endif
