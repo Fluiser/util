@@ -23,6 +23,6 @@ void decode(const char* input, char* out, LWORD code, size_t size)
 	std::cout << "SIZE: " << size << "\n";
 	for(size_t i = 0; i < size; input += sizeof(LWORD), ++i)
 	{
-		out[i] = *((LWORD*)input) - code;
+		out[i] = ((LWORD*)input)[0]-code;
 	}
 }
