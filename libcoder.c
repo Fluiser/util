@@ -1,7 +1,9 @@
+#ifndef LIBCODER_C
+#define LIBCODER_C
 #include <stdlib.h>
 #include <stdint.h>
 
-#ifndef _use_lword_define
+#ifndef LWORD
 #define LWORD int16_t
 #endif
 
@@ -11,9 +13,9 @@
 */
 void encode(const char* input, char* out, LWORD code, size_t size)
 {
-	for(size_t i = 0; i < size; ++i, out += sizeof(LWORD))
+	for(size_t i = 0, _ptr = 0; i < size; ++i, ++_ptr)
 	{
-		*((LWORD*)out) = input[i] + code;
+		((LWORD*)out)[_ptr] = input[i] + code;
 	}
 }
 
@@ -21,8 +23,9 @@ void encode(const char* input, char* out, LWORD code, size_t size)
 void decode(const char* input, char* out, LWORD code, size_t size)
 {
 	std::cout << "SIZE: " << size << "\n";
-	for(size_t i = 0; i < size; input += sizeof(LWORD), ++i)
+	for(size_t i = 0, _ptr = 0; i < size; ++_ptr, ++i)
 	{
-		out[i] = ((LWORD*)input)[0]-code;
+		out[i] = ((LWORD*)input)[_ptr]-code;
 	}
 }
+#endif
