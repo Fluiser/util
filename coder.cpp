@@ -29,17 +29,6 @@ LWORD toNumber(const std::string& str)
     return number;
 }
 
-lword f_sum(const char* str)
-{
-    lword sum = 0;
-    for(size_t i = 0; str[i] != '\0'; ++i)
-    {
-        sum += str[i];
-    }
-    return sum;
-}
-
-
 void f_decode(std::map<std::string, std::string>& flags)
 {
     if(!flags.count("in") || !flags.count("key")) {
