@@ -121,6 +121,7 @@ int main(int argc, char** argv)
         {
             // std::cout << argv[i] << " - " << (std::string(argv[i]+(argv[i][1] == '-' ? 2 : 1)) == "help") << "\n";
             if(std::string(argv[i]+(argv[i][1] == '-' ? 2 : 1)) == "help") {
+                    std::cout << std::string("-Do you see security?\n-No.\n-Because she's not here.\n\n"); // for unicode.
                     std::cout << argv[i] << " <decode|encode>\n";
                     for(size_t i = 0; i < sizeof(help_flags)/sizeof(help_flags[0]); ++i)
                     {
