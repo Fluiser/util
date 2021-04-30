@@ -12,7 +12,7 @@
 #elif 199711L < MATH_VECTOR_VERSION
 #  define MATH_VECTOR_VERSION_CPP 11
 #else
-#  error "Vector3.hpp needs at least c++ standrt version 11"
+#define MATH_VECTOR_VERSION_CPP 0
 #endif
 
 #if MATH_VECTOR_VERSION_CPP == 14
@@ -27,11 +27,11 @@ namespace math {
         typedef vec3<T> v3;
     public:
         T x, y, z;
-        constexpr vec3(T _x, T _y, T _z) :
+        __constexpr__ vec3(T _x, T _y, T _z) :
                 x(_x), y(_y), z(_z) {}
 
         //Values +-*/
-        constexpr v3 operator+(const T &value) const noexcept {
+        __constexpr__ v3 operator+(const T &value) const noexcept {
             return vec3<T>{
                     x + value,
                     y + value,
@@ -39,7 +39,7 @@ namespace math {
             };
         }
 
-        constexpr v3 operator-(const T &value) const noexcept {
+        __constexpr__ v3 operator-(const T &value) const noexcept {
             return v3{
                     x - value,
                     y - value,
@@ -47,7 +47,7 @@ namespace math {
             };
         }
 
-        constexpr v3 operator*(const T &value) const noexcept {
+        __constexpr__ v3 operator*(const T &value) const noexcept {
             return v3{
                     x * value,
                     y * value,
@@ -55,7 +55,7 @@ namespace math {
             };
         }
 
-        constexpr v3 operator/(const T &value) const noexcept {
+        __constexpr__ v3 operator/(const T &value) const noexcept {
             if(value == 0) return v3{0, 0, 0};
             return v3{
                     x / value,
@@ -65,7 +65,7 @@ namespace math {
         }
 
         //Vectors +-*/
-        constexpr v3 operator+(const v3 &value) const noexcept {
+        __constexpr__ v3 operator+(const v3 &value) const noexcept {
             return v3{
                     this->x + value.x,
                     this->y + value.y,
@@ -73,7 +73,7 @@ namespace math {
             };
         }
 
-        constexpr v3 operator-(const v3 &value) const noexcept {
+        __constexpr__ v3 operator-(const v3 &value) const noexcept {
             return v3{
                     this->x - value.x,
                     this->y - value.y,
@@ -81,7 +81,7 @@ namespace math {
             };
         }
 
-        constexpr v3 operator*(const v3 &value) const noexcept {
+        __constexpr__ v3 operator*(const v3 &value) const noexcept {
             return v3{
                     this->x * value.x,
                     this->y * value.y,
@@ -89,7 +89,7 @@ namespace math {
             };
         }
 
-        constexpr v3 operator/(const v3 &value) const noexcept {
+        __constexpr__ v3 operator/(const v3 &value) const noexcept {
             return v3{
                     (value.x == 0 ? 0 : this->x / value.x),
                     (value.y == 0 ? 0 : this->y / value.y),
@@ -98,7 +98,7 @@ namespace math {
         }
 
         //Values operator s=
-        __constexpr__ v3 &operator+=(const T &value) noexcept {
+        v3 &operator+=(const T &value) noexcept {
             this->x += value;
             this->y += value;
             this->z += value;
@@ -106,21 +106,21 @@ namespace math {
         }
 
 
-        __constexpr__ v3 &operator-=(const T &value) noexcept {
+        v3 &operator-=(const T &value) noexcept {
             this->x -= value;
             this->y -= value;
             this->z -= value;
             return *this;
         }
 
-        __constexpr__ v3 &operator*=(const T &value) noexcept {
+        v3 &operator*=(const T &value) noexcept {
             this->x *= value;
             this->y *= value;
             this->z *= value;
             return *this;
         }
 
-        __constexpr__ v3 &operator/=(const T &value) noexcept {
+        v3 &operator/=(const T &value) noexcept {
             if(value == 0) {
                 this->x = this->y = this->z = 0;
             } else {
@@ -132,28 +132,28 @@ namespace math {
         }
 
         //Vec2 operators s=
-        __constexpr__ v3 &operator+=(const v3 &value) noexcept {
+        v3 &operator+=(const v3 &value) noexcept {
             this->x += value.y;
             this->y += value.x;
             this->z += value.z;
             return *this;
         }
 
-        __constexpr__ v3 &operator-=(const v3 &value) noexcept {
+        v3 &operator-=(const v3 &value) noexcept {
             this->x -= value.y;
             this->y -= value.x;
             this->z -= value.z;
             return *this;
         }
 
-        __constexpr__ v3 &operator*=(const v3 &value) noexcept {
+        v3 &operator*=(const v3 &value) noexcept {
             this->x *= value.y;
             this->y *= value.x;
             this->z -= value.z;
             return *this;
         }
 
-        __constexpr__ v3 &operator/=(const v3 &value) noexcept {
+        v3 &operator/=(const v3 &value) noexcept {
             if(value.x != 0) this->x /= value.y;
             else this->x = 0;
             if(value.y != 0) this->y /= value.x;
