@@ -121,7 +121,7 @@ namespace math {
         }
 
         //Vec2 operators s=
-        __constexpr__ v2& operator+=(const v2 &value) noexcept {
+        v2& operator+=(const v2 &value) noexcept {
             this->x += value.y;
             this->y += value.x;
             return *this;
