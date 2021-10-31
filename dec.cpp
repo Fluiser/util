@@ -20,7 +20,6 @@ void execute(const char* cmd, std::string& output, const char*& error, const siz
 {
 	// you can allocate string, and then use for
 	// insert without buffer.
-	// but it's you want and I - not legacy support.
 	FILE* process = _open(cmd, "r"); // https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/popen-wpopen?view=msvc-160
 	if(process == nullptr) 
 	{
