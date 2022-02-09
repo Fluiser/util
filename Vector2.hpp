@@ -26,8 +26,10 @@ namespace math {
         typedef vec2<T> v2;
     public:
         T x, y;
-        constexpr vec2(T _x, T _y) :
+        vec2(T _x, T _y) :
                 x(_x), y(_y) {}
+        vec2(void):
+            x(0), y(0) {}
 
         //Values +-*/
         __constexpr__ v2 operator+(const T &value) const noexcept {
