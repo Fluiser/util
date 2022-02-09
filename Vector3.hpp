@@ -27,9 +27,10 @@ namespace math {
         typedef vec3<T> v3;
     public:
         T x, y, z;
-        __constexpr__ vec3(T _x, T _y, T _z) :
+        vec3(T _x, T _y, T _z) :
                 x(_x), y(_y), z(_z) {}
-
+        vec3(void):
+                x(0), y(0), z(0) {}
         //Values +-*/
         __constexpr__ v3 operator+(const T &value) const noexcept {
             return vec3<T>{
