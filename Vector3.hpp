@@ -1,5 +1,5 @@
 #ifndef engine_VECTOR3_HPP
-
+#define engine_VECTOR3_HPP
 
 #if defined( _MSVC_LANG )
 #  define MATH_VECTOR_VERSION _MSVC_LANG
