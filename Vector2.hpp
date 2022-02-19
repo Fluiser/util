@@ -1,4 +1,5 @@
 #ifndef engine_VECTOR2_HPP
+#define engine_VECTOR2_HPP
 
 #if defined( _MSVC_LANG )
 #  define VERSION _MSVC_LANG
