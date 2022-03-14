@@ -33,7 +33,7 @@ inline sf::Vector2f normalize(sf::Vector2f point)
     };
 }
 
-constexpr float _an = 2*M_PI/180;
+constexpr float _an = 1*M_PI/180;
 
 void drawSquare(int size, float angle, sf::RenderWindow& window)
 {
@@ -138,7 +138,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     {
         sq.angle = (rand()%360) * _an*1;
         sq.size = rand()%square::maxSize;
-        sq.op = ((rand()%5000)/5000 + 0.6) * (rand() >= RAND_MAX/2 ? 1 : -1);
+        sq.op = ((rand()%5000)/5000 + 0.4) * (rand() >= RAND_MAX/2 ? 1 : -1);
     }
     window.setActive(false);
 
