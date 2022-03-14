@@ -142,7 +142,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
     window.setActive(false);
 
-    bool activeByEventThread = true;
+    bool activeByEventThread = true; // Мне просто было лень
+    // (и я забыл про std::atomic.)
 
     std::thread renderThread([&]{
         sf::Clock timer;
