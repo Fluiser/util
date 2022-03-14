@@ -25,21 +25,21 @@ void drawLine(sf::Vector2f st, sf::Vector2f en, sf::RenderWindow& wind)
     wind.draw(lines);
 }
 
-inline sf::Vector2f normalize(sf::Vector2f point)
+inline sf::Vector2f normalize(sf::Vector2<double> point)
 {
     return {
-        W_X/2 + point.x,
-        W_Y/2 - point.y
+        (float)(W_X/2 + point.x),
+        (float)(W_Y/2 - point.y)
     };
 }
 
 constexpr float _an = 1*M_PI/180;
 
-void drawSquare(int size, float angle, sf::RenderWindow& window)
+void drawSquare(int size, double angle, sf::RenderWindow& window)
 {
-    float cosAngle = cos(angle);
-    float sinAngle = sin(angle);
-    float rad = size/2.0f;
+    double cosAngle = cos(angle);
+    double sinAngle = sin(angle);
+    double rad = size/2.0f;
 
     // printf("cos: %f\nsin: %f\n", cosAngle, sinAngle);
 
@@ -77,8 +77,8 @@ void drawSquare(int size, float angle, sf::RenderWindow& window)
 }
 
 struct square {
-    float angle;
-    float op = 1;
+    double angle;
+    double op = 1;
     int size;
     inline static int maxSize = 0;
 };
@@ -142,8 +142,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
     window.setActive(false);
 
-    bool activeByEventThread = true; // Мне просто было лень
-    // (и я забыл про std::atomic.)
+    bool activeByEventThread = true;
 
     std::thread renderThread([&]{
         sf::Clock timer;
