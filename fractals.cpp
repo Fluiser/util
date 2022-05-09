@@ -6,6 +6,7 @@
 #include <vector>
 #include <chrono>
 #include <mutex>
+#include "math.h"
 
 
 #define W_X 1920
@@ -33,42 +34,7 @@ double ___get_y(int y)
 {
     return ((double)y / W_Y - 0.5) / scale - offset.y;
 }
-void square_complex(double* mx)
-{
-    double re = mx[0] * mx[0] - mx[1] * mx[1];
-    double im = mx[0] * mx[1] +  mx[1] * mx[0];
-    mx[0] = re;
-    mx[1] = im;
-}
-void cos_complex(double* mx)
-{
-    double re = mx[0];
-    double im = mx[1];
-    mx[0] = cos(re) * cosh(im);
-    mx[1] = sin(re) * sinh(im) * -1;
-}
-void sin_complex(double* mx)
-{
-    double re = mx[0];
-    double im = mx[1];
-    mx[0] = sin(re) * cosh(im);
-    mx[1] = cos(re) * sinh(im);
-}
-void plus_copmex(double* src, const double* l)
-{
-    src[0] = src[0] + l[0];
-    src[1] = src[1] + l[1];
-}
-void divide_complex(double* src, const double* left, const double* right)
-{
-    double div = pow(left[0],2) + pow(left[1], 2);
-    src[0] = (left[0] * right[0] + left[1] * right[1] / div);
-    src[1] = (left[1] * right[0] - left[0] * right[1] / div);
-}
-void exp_complex(double* mx)
-{
-    mx[0] = exp(mx[0]);
-}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(W_X, W_Y), "M", sf::Style::Fullscreen);
@@ -113,20 +79,22 @@ int main()
                         double z[2]{___get_x(x), ___get_y(y)};
                         double that[2] {___get_x(x), ___get_y(y)};
 
-                        img.setPixel(x, y, sf::Color::Red);
+                        img.setPixel(x, y, sf::Color(0x9136DFFF));
                         for(int i = 0; i < MAX_ITERATION; ++i)
                         {
                           // Тут мы всё и рисуем.
                             square_complex(z);
-                            plus_copmex(z, that);
+                            z[0] += that[0];
+                            z[1] += that[1];
+                            // plus_copmex(z, that);
                           // А тут уже считаем.
                           
                           //Да и так считали, что посчитали - github пососная помойка для всратеньких проектов.
                           //Поэтому это здесь.
                             if((z[0] * z[0] + z[1] * z[1]) >= 20)
                             {
-                                int c =  255*i/MAX_ITERATION;
-                                img.setPixel(x, y, sf::Color(c, c, c));
+                                int c = 0x9136DF*i/MAX_ITERATION;
+                                img.setPixel(x, y, sf::Color(c | 0x000000ff));
                                 break;
                             }
                         }
@@ -159,6 +127,8 @@ int main()
         }
     });
     auto mousePos = sf::Mouse::getPosition();
+    static double scale_step = 0.01;
+    static double offset_step = 0.05;
     while(window.isOpen())
     {
         while(window.waitEvent(event))
@@ -169,32 +139,56 @@ int main()
             {
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::W))
                 {
-                    offset.y += 0.05;
-                    continue;
+                    offset.y += offset_step;
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::S))
                 {
-                    offset.y -= 0.05;
-                    continue;
+                    offset.y -= offset_step;
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::A))
                 {
-                    offset.x -= 0.05;
-                    continue;
+                    offset.x += offset_step;
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::D))
                 {
-                    offset.x += 0.05;
-                    continue;
+                    offset.x -= offset_step;
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::U))
                 {
-                    scale += 0.05;
-                    continue;
+                    scale += scale_step;
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::I))
                 {
-                    scale -= 0.05;
+                    scale -= scale_step;
+                }
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad9))
+                {
+                    scale_step += 5;
+                    std::cout << scale_step << "\n";
+                    continue;
+                }
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad3))
+                {
+                    scale_step -= 5;
+                    std::cout << scale_step << "\n";
+                    continue;
+                }
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad7))
+                {
+                    offset_step += 0.01;
+                    std::cout << offset_step << "\n";
+                    continue;
+                }
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad1))
+                {
+                    offset_step -= 0.01;
+                    std::cout << offset_step << "\n";
+                    continue;
+                }
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad5))
+                {
+                    std::cin >> offset_step >> scale_step;
+                    std::cout << offset_step  << " - " << scale_step << "\n";
                     continue;
                 }
             }
