@@ -38,8 +38,7 @@ __kernel void SHADERMAIN(
         }
         if(x*x + y*y >= 20)
         {
-            unsigned c = 0xff*i/MAX_ITERATIONS; // В пизду, короче.
-            // И так заебись.
+            unsigned c = 0xff*i/MAX_ITERATIONS;
             canvas[idx] = ((c << 24) | (c << 16) | (c << 8)) | 0x000000ff;
             break;
         }
