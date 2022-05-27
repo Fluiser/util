@@ -16,4 +16,4 @@ inline void sys_log(Args&&... args)
 #else
 #define sys_log(x) /* x */
 #endif
-
+#endif
