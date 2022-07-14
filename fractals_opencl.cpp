@@ -29,7 +29,7 @@ namespace {
 #endif
     double scale_step = 0.01;
     double offset_step = 0.05;
-    size_t FRAMES_BUFFER = 5;
+    size_t FRAMES_BUFFER = 1;
 }
 
 void fillCanvasPos(uint32_t* canvas);
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
         std::cout << "Selected " << devices[id].getInfo<CL_DEVICE_NAME>() << " device.\n";
     }
 
-    std::cout << "Size in collection blyat frames[~5]: ";
+    std::cout << "Array frame size[Bruh function. Only for testing.]: ";
     std::cin >> FRAMES_BUFFER;
 
     sys_log("Create context.");
