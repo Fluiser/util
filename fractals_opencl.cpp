@@ -10,37 +10,43 @@
 #include "math.h"
 #include <fstream>
 #include <mutex>
-#include "utils.cpp"
+#include "engine/util.cpp"
 
 const size_t W_X = 1920;
 const size_t W_Y = 1920;
 
+#define MULTIPLICITY_JULIA
+
 static double scale = 0.2;
-sf::Vector2<double> offset{0.0, -1.0};
+sf::Vector2<double> offset{0.0, 0.0};
 
 namespace {
+#ifdef MULTIPLICITY_JULIA
     double c0 = 0;
     double c1 = 0;
     double alpha = 0;
     const double b = 0.3891;
-    
+#endif
     double scale_step = 0.01;
     double offset_step = 0.05;
+    size_t FRAMES_BUFFER = 5;
 }
 
-void fillCanvasPos(uint32_t* canvas);
-
-int main()
+int main(int argc, char** argv)
 {    
+    //just for info
+    bool showExtensions = argc >= 2;
+    int MAX_ITERATIONS = 25;
+
     setlocale(LC_ALL, "Russian");
     //@init
     sf::Event event;
     sf::Image img;
     img.create(W_X, W_Y, sf::Color::White);
-
+#ifdef MULTIPLICITY_JULIA
     c0= b * sin(alpha);
     c1= b * cos(alpha);
-
+#endif
     sf::Texture texture;
     sf::Sprite sprite;
 
@@ -70,8 +76,23 @@ int main()
             for(; __index_device < devices.size(); ++__index_device)
             {
                 std::cout << "\t[" << __index_device << "] " << devices[__index_device].getInfo<CL_DEVICE_NAME>() <<
-                        "- [" << devices[__index_device].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>() << " work group size; "<<
+                        " - [" << devices[__index_device].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>() << " work group size; "<<
                         devices[__index_device].getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>()<<" max items]" << '\n';
+                if(showExtensions)
+                {
+                    std::cout << "\textensions:\n\t\t";
+                    auto stringExtensions = devices[__index_device].getInfo<CL_DEVICE_EXTENSIONS>();
+
+                    for(const auto& c: stringExtensions)
+                    {
+                        if(c == ' ')
+                            std::cout << "\n\t\t";
+                        else
+                            std::cout << c;
+                    }
+
+                    std::cout << '\n'; 
+                }
             }
         }
         size_t id = 0;
@@ -81,16 +102,20 @@ int main()
         shitapi_cl.push_back(devices[id]);
         std::cout << "Selected " << devices[id].getInfo<CL_DEVICE_NAME>() << " device.\n";
     }
+
+    std::cout << "Size in collection blyat frames[~5]: ";
+    std::cin >> FRAMES_BUFFER;
+
     sys_log("Create context.");
     cl::Context context(rDevice);
     sys_log("Create CommandQueue.");
     cl::CommandQueue queue(context, rDevice); // квеве
 
     sys_log("Alloc canvas.");
-    uint32_t* host_canvas = new uint32_t[W_X*W_Y];
+    uint32_t* host_canvas = new uint32_t[W_X*W_Y*FRAMES_BUFFER];
     fillCanvasPos(host_canvas);
     // uint32_t* hc = new uint32_t[W_X*W_Y];
-    cl::Buffer canvas(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4, host_canvas);
+    cl::Buffer canvas(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4 * FRAMES_BUFFER, host_canvas);
 
     //-----------------
 __buildShader:
@@ -132,57 +157,72 @@ __buildShader:
     
     cl::Kernel kernel(program, "SHADERMAIN");
     std::mutex kernelMutex;
-    int maxIt = 0;
 
     kernel.setArg(0, canvas);
-    kernel.setArg(1, (double)W_X);
-    kernel.setArg(2, (double)W_Y);
-    kernel.setArg(3, (double)scale);
-    kernel.setArg(4, (double)offset.x);
-    kernel.setArg(5, (double)offset.y);
-    kernel.setArg(6, (double)c0);
-    kernel.setArg(7, (double)c1);
+    kernel.setArg(1, (float)W_X);
+    kernel.setArg(2, (float)W_Y);
+    kernel.setArg(3, (float)scale);
+    kernel.setArg(4, (float)offset.x);
+    kernel.setArg(5, (float)offset.y);
+    kernel.setArg(6, MAX_ITERATIONS);
+#ifdef MULTIPLICITY_JULIA
+    kernel.setArg(7, (float)c0);
+    kernel.setArg(8, (float)c1);
 
+#endif
     //------------------
     sf::RenderWindow window(sf::VideoMode(W_X, W_Y), "M", sf::Style::Fullscreen);
     window.setActive(false);
     
     //@render
     std::thread renderThread([&]{
+        sf::Clock timer;
         while(window.isOpen())
         {
-            alpha += 3*M_PI/180;
-            c0 = b * sin(alpha);
-            c1 = b * cos(alpha);
-            // std::cout << alpha << "(" << (alpha*180/M_PI) << ")" << "\n\t" << c0[0] << "; " << c0[1] << '\n';;
-            fillCanvasPos(host_canvas);
-            canvas = cl::Buffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4, host_canvas);
-            kernelMutex.lock();
-            kernel.setArg(0, canvas);
-            kernel.setArg(6, (double)c0);
-            kernel.setArg(7, (double)c1);
-            queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(W_X * W_Y), cl::NDRange(rDevice.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>()));
-            queue.finish();
-            queue.enqueueReadBuffer(canvas, true, 0, (W_X*W_Y*4), host_canvas);
-            kernelMutex.unlock();
-            // for(int i = 0; i < W_X*W_Y; ++i)
-            // {
-            //     int x = host_canvas[i] >> 16;
-            //     int y = host_canvas[i]^(x << 16);
-            //     std::cout << x << " " << y << "\n";
-            // }
+            try{
+                timer.restart();
+                fillCanvasPos(host_canvas);
+                queue.enqueueWriteBuffer(canvas, false, 0, W_X*W_Y*4*FRAMES_BUFFER, host_canvas);
+                kernelMutex.lock();
+                for(int frame_idx = 0; frame_idx < FRAMES_BUFFER; ++frame_idx)
+                {
+                    unsigned* canvas_frame = host_canvas + (W_X*W_Y*frame_idx);
+    #ifdef MULTIPLICITY_JULIA
+                    alpha += 0.5*M_PI/180;
+                    c0 = b * sin(alpha);
+                    c1 = b * cos(alpha);
+    #endif
+                    // std::cout << alpha << "(" << (alpha*180/M_PI) << ")" << "\n\t" << c0[0] << "; " << c0[1] << '\n';;
+                    // canvas = cl::Buffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4, host_canvas);
+                    // kernel.setArg(0, canvas);
+    #ifdef MULTIPLICITY_JULIA
+                    kernel.setArg(7, (float)c0);
+                    kernel.setArg(8, (float)c1);
+    #endif
+                    queue.enqueueNDRangeKernel( kernel,
+                                                cl::NDRange(W_X * W_Y * frame_idx),
+                                                cl::NDRange(W_X * W_Y),
+                                                cl::NDRange(rDevice.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>()/2, rDevice.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>()/2));
+                }
+                kernelMutex.unlock();
+                queue.enqueueReadBuffer(canvas, true, 0, (W_X*W_Y*4*FRAMES_BUFFER), host_canvas);
+                queue.finish(); // wait all frames
 
-            img.create(W_X, W_Y, (uint8_t*)host_canvas);
-            // for(int i = 0; i < 10; ++i)
-            // {
-            //     auto* ptr = (uint8_t*)(host_canvas + i);
-            //     std::cout << (int)ptr[0] << ' ' << (int)ptr[1] << ' ' << (int)ptr[2] << '\n';
-            // }
-            window.clear();
-            texture.loadFromImage(img);
-            sprite.setTexture(texture);
-            window.draw(sprite);
-            window.display();
+                // frame execution
+                for(int fx = 0; fx < FRAMES_BUFFER; ++fx)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1 - timer.getElapsedTime().asMilliseconds()));
+                    timer.restart();
+                    // aliasing(host_canvas);
+                    texture.update((uint8_t*)(host_canvas + (W_X*W_Y*fx)), W_X, W_Y, 0, 0);
+                    window.clear();
+                    sprite.setTexture(texture);
+                    window.draw(sprite);
+                    window.display();
+                }
+            } catch(cl::Error err) {
+                std::cout << err.what() << err.err() << '\n';
+            }
         }
     });
 
@@ -195,43 +235,51 @@ __buildShader:
         {
             if(event.type == sf::Event::Closed)
                 return 1;
+            if(event.type == sf::Event::MouseWheelScrolled)
+            {
+                std::lock_guard<std::mutex> __(kernelMutex);
+                MAX_ITERATIONS += (event.mouseWheelScroll.delta);
+                kernel.setArg(6, MAX_ITERATIONS);
+                std::cout << MAX_ITERATIONS << '\n';
+                continue;
+            }
             if(event.type == sf::Event::KeyPressed)
             {
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::W))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     offset.y += offset_step;
-                    kernel.setArg(5, (double)offset.y);
+                    kernel.setArg(5, (float)offset.y);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::S))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     offset.y -= offset_step;
-                    kernel.setArg(5, (double)offset.y);
+                    kernel.setArg(5, (float)offset.y);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::A))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     offset.x += offset_step;
-                    kernel.setArg(4, (double)offset.x);
+                    kernel.setArg(4, (float)offset.x);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::D))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     offset.x -= offset_step;
-                    kernel.setArg(4, (double)offset.x);
+                    kernel.setArg(4, (float)offset.x);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::U))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     scale += scale_step;
-                    kernel.setArg(3, (double)scale);
+                    kernel.setArg(3, (float)scale);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::I))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     scale -= scale_step;
-                    kernel.setArg(3, (double)scale);
+                    kernel.setArg(3, (float)scale);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad9))
                 {
@@ -272,7 +320,8 @@ __buildShader:
 
 void fillCanvasPos(uint32_t* canvas)
 {
-    for(int x = 0, i = 0; x < W_X; ++x)
-        for(int y = 0; y < W_Y; ++y, ++i)
-            canvas[i] = (y << 16) | x;
+    for(int canvas_idx = 0; canvas_idx < FRAMES_BUFFER; ++canvas_idx, canvas += W_X*W_Y)
+        for(int x = 0, i = 0; x < W_X; ++x)
+            for(int y = 0; y < W_Y; ++y, ++i)
+                canvas[i] = (y << 16) | x;
 }
