@@ -32,6 +32,8 @@ namespace {
     size_t FRAMES_BUFFER = 5;
 }
 
+void fillCanvasPos(uint32_t* canvas);
+
 int main(int argc, char** argv)
 {    
     //just for info
