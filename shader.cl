@@ -39,8 +39,8 @@ __kernel void SHADERMAIN(
         if(x*x + y*y >= 20)
         {
             unsigned c = 0xff*i/MAX_ITERATIONS;
-            //Нормальное отображение. Но малиновое мне нравится больше.
-            //unsigned c = 0xff*i/MAX_ITERATIONS;
+            //Почти нормальное отображение. Но малиновое мне нравится больше.
+            //unsigned c = (i/MAX_ITERATIONS)*0xff;
             canvas[idx] = ((c << 24) | (c << 16) | (c << 8)) | 0x000000ff;
             break;
         }
