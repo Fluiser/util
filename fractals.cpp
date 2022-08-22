@@ -71,7 +71,7 @@ int main()
             stthread[cluster] = WORK;
             while(window.isOpen())
             {
-                if(stthread[cluster] != WORK) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                if(stthread[cluster] != WORK) {std::this_thread::sleep_for(std::chrono::milliseconds(10)); continue;}
 
                 for(int x = cluster; x < W_X; x += THREAD_SIZE)
                     for(int y = 0; y < W_Y; ++y)
