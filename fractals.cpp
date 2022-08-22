@@ -79,7 +79,7 @@ int main()
                         double z[2]{___get_x(x), ___get_y(y)};
                         double that[2] {___get_x(x), ___get_y(y)};
 
-                        img.setPixel(x, y, sf::Color(0x9136DFFF));
+                        img.setPixel(x, y, sf::Color(0xfa15ac));
                         for(int i = 0; i < MAX_ITERATION; ++i)
                         {
                           // Тут мы всё и рисуем.
@@ -94,7 +94,7 @@ int main()
                             if((z[0] * z[0] + z[1] * z[1]) >= 20)
                             {
                                 int c = 0x9136DF*i/MAX_ITERATION;
-                                img.setPixel(x, y, sf::Color(c | 0x000000ff));
+                                img.setPixel(x, y, sf::Color(c | 0xfa15ac));
                                 break;
                             }
                         }
