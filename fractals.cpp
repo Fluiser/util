@@ -109,7 +109,7 @@ int main()
         while(window.isOpen())
         {
             for(int i = 0; i < THREAD_SIZE;)
-                if(stthread[i] != WORK) {++i;}
+                if(stthread[i] != COMPLETED) {++i;}
             alpha += 3*M_PI/180;
             c0[0] = b * sin(alpha);
             c0[1] = b * cos(alpha);
