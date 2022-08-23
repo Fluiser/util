@@ -32,8 +32,6 @@ namespace {
     size_t FRAMES_BUFFER = 1;
 }
 
-void fillCanvasPos(uint32_t* canvas);
-
 int main(int argc, char** argv)
 {    
     //just for info
@@ -115,7 +113,6 @@ int main(int argc, char** argv)
 
     sys_log("Alloc canvas.");
     uint32_t* host_canvas = new uint32_t[W_X*W_Y*FRAMES_BUFFER];
-    fillCanvasPos(host_canvas);
     // uint32_t* hc = new uint32_t[W_X*W_Y];
     cl::Buffer canvas(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4 * FRAMES_BUFFER, host_canvas);
 
@@ -161,15 +158,15 @@ __buildShader:
     std::mutex kernelMutex;
 
     kernel.setArg(0, canvas);
-    kernel.setArg(1, (float)W_X);
-    kernel.setArg(2, (float)W_Y);
-    kernel.setArg(3, (float)scale);
-    kernel.setArg(4, (float)offset.x);
-    kernel.setArg(5, (float)offset.y);
+    kernel.setArg(1, (double)W_X);
+    kernel.setArg(2, (double)W_Y);
+    kernel.setArg(3, (double)scale);
+    kernel.setArg(4, (double)offset.x);
+    kernel.setArg(5, (double)offset.y);
     kernel.setArg(6, MAX_ITERATIONS);
 #ifdef MULTIPLICITY_JULIA
-    kernel.setArg(7, (float)c0);
-    kernel.setArg(8, (float)c1);
+    kernel.setArg(7, (double)c0);
+    kernel.setArg(8, (double)c1);
 
 #endif
     //------------------
@@ -183,7 +180,6 @@ __buildShader:
         {
             try{
                 timer.restart();
-                fillCanvasPos(host_canvas);
                 queue.enqueueWriteBuffer(canvas, false, 0, W_X*W_Y*4*FRAMES_BUFFER, host_canvas);
                 kernelMutex.lock();
                 for(int frame_idx = 0; frame_idx < FRAMES_BUFFER; ++frame_idx)
@@ -198,8 +194,8 @@ __buildShader:
                     // canvas = cl::Buffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4, host_canvas);
                     // kernel.setArg(0, canvas);
     #ifdef MULTIPLICITY_JULIA
-                    kernel.setArg(7, (float)c0);
-                    kernel.setArg(8, (float)c1);
+                    kernel.setArg(7, (double)c0);
+                    kernel.setArg(8, (double)c1);
     #endif
                     queue.enqueueNDRangeKernel( kernel,
                                                 cl::NDRange(W_X * W_Y * frame_idx),
@@ -251,37 +247,37 @@ __buildShader:
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     offset.y += offset_step;
-                    kernel.setArg(5, (float)offset.y);
+                    kernel.setArg(5, (double)offset.y);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::S))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     offset.y -= offset_step;
-                    kernel.setArg(5, (float)offset.y);
+                    kernel.setArg(5, (double)offset.y);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::A))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     offset.x += offset_step;
-                    kernel.setArg(4, (float)offset.x);
+                    kernel.setArg(4, (double)offset.x);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::D))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     offset.x -= offset_step;
-                    kernel.setArg(4, (float)offset.x);
+                    kernel.setArg(4, (double)offset.x);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::U))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     scale += scale_step;
-                    kernel.setArg(3, (float)scale);
+                    kernel.setArg(3, (double)scale);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::I))
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
                     scale -= scale_step;
-                    kernel.setArg(3, (float)scale);
+                    kernel.setArg(3, (double)scale);
                 }
                 if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad9))
                 {
@@ -318,12 +314,4 @@ __buildShader:
     }
     //-----------------
     return 0;
-}
-
-void fillCanvasPos(uint32_t* canvas)
-{
-    for(int canvas_idx = 0; canvas_idx < FRAMES_BUFFER; ++canvas_idx, canvas += W_X*W_Y)
-        for(int x = 0, i = 0; x < W_X; ++x)
-            for(int y = 0; y < W_Y; ++y, ++i)
-                canvas[i] = (y << 16) | x;
 }
