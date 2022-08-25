@@ -12,8 +12,10 @@
 #include <mutex>
 #include "engine/util.cpp"
 
-const size_t W_X = 1920;
-const size_t W_Y = 1920;
+void fillCanvasPos(uint32_t* canvas);
+
+const size_t W_X = 1024;
+const size_t W_Y = 1024;
 
 #define MULTIPLICITY_JULIA
 
@@ -170,7 +172,7 @@ __buildShader:
 
 #endif
     //------------------
-    sf::RenderWindow window(sf::VideoMode(W_X, W_Y), "M", sf::Style::Fullscreen);
+    sf::RenderWindow window(sf::VideoMode(W_X, W_Y), "M", sf::Style::Default);
     window.setActive(false);
     
     //@render
@@ -180,6 +182,7 @@ __buildShader:
         {
             try{
                 timer.restart();
+                fillCanvasPos(host_canvas);
                 queue.enqueueWriteBuffer(canvas, false, 0, W_X*W_Y*4*FRAMES_BUFFER, host_canvas);
                 kernelMutex.lock();
                 for(int frame_idx = 0; frame_idx < FRAMES_BUFFER; ++frame_idx)
@@ -209,7 +212,7 @@ __buildShader:
                 // frame execution
                 for(int fx = 0; fx < FRAMES_BUFFER; ++fx)
                 {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1 - timer.getElapsedTime().asMilliseconds()));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10 - timer.getElapsedTime().asMilliseconds()));
                     timer.restart();
                     // aliasing(host_canvas);
                     texture.update((uint8_t*)(host_canvas + (W_X*W_Y*fx)), W_X, W_Y, 0, 0);
@@ -314,4 +317,12 @@ __buildShader:
     }
     //-----------------
     return 0;
+}
+
+void fillCanvasPos(uint32_t* canvas)
+{
+    for(int canvas_idx = 0; canvas_idx < FRAMES_BUFFER; ++canvas_idx, canvas += W_X*W_Y)
+        for(int x = 0, i = 0; x < W_X; ++x)
+            for(int y = 0; y < W_Y; ++y, ++i)
+                canvas[i] = (y << 16) | x;
 }
