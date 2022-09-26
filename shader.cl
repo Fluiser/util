@@ -1,5 +1,3 @@
-#define MAX_ITERATIONS 15
-
 __kernel void SHADERMAIN(
     __global unsigned int* canvas, // 0
     double W_X, // 1
@@ -7,11 +5,12 @@ __kernel void SHADERMAIN(
     double scale, // 3
     double offsetX, // 4
     double offsetY, // 5
-    double c0, // 6
-    double c1 // 7
+    int MAX_ITERATIONS, //6
+    double c0, // 7
+    double c1 // 8
 )
 {
-    int idx = get_global_id(0);
+    size_t idx = get_global_id(0);
     //z
     
     double x = canvas[idx] >> 16;
@@ -19,9 +18,9 @@ __kernel void SHADERMAIN(
     x = (x/W_X - 0.5) / scale - offsetX;
     y = (y/W_Y - 0.5) / scale - offsetY;
     // canvas[idx] = (tx << 16) | ty; // for test
-    double tx = x;
-    double ty = y;
-    canvas[idx] = 0xffffffff;
+    // double tx = x;
+    // double ty = y;
+
 
     for(int i = 0; i < MAX_ITERATIONS; ++i)
     {
@@ -33,14 +32,12 @@ __kernel void SHADERMAIN(
             y = im;
         }
         {// z += c
-            x += tx;
-            y += ty;
+            x += c0;
+            y += c1;
         }
         if(x*x + y*y >= 20)
         {
             unsigned c = 0xff*i/MAX_ITERATIONS;
-            //Почти нормальное отображение. Но малиновое мне нравится больше.
-            //unsigned c = (i/MAX_ITERATIONS)*0xff;
             canvas[idx] = ((c << 24) | (c << 16) | (c << 8)) | 0x000000ff;
             break;
         }
