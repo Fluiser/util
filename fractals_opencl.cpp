@@ -11,11 +11,14 @@
 #include <fstream>
 #include <mutex>
 #include "engine/util.cpp"
+#include <SFML/Window/VideoMode.hpp>
+#include <fstream>
+#include <iomanip>
 
 void fillCanvasPos(uint32_t* canvas);
 
-const size_t W_X = 1024;
-const size_t W_Y = 1024;
+size_t W_X = 1080;
+size_t W_Y = 1920;
 
 #define MULTIPLICITY_JULIA
 
@@ -36,6 +39,9 @@ namespace {
 
 int main(int argc, char** argv)
 {    
+
+    std::fstream file("out.txt");
+
     //just for info
     bool showExtensions = argc >= 2;
     int MAX_ITERATIONS = 25;
@@ -44,7 +50,6 @@ int main(int argc, char** argv)
     //@init
     sf::Event event;
     sf::Image img;
-    img.create(W_X, W_Y, sf::Color::White);
 #ifdef MULTIPLICITY_JULIA
     c0= b * sin(alpha);
     c1= b * cos(alpha);
@@ -52,8 +57,6 @@ int main(int argc, char** argv)
     sf::Texture texture;
     sf::Sprite sprite;
 
-    texture.loadFromImage(img);
-    sprite.setTexture(texture);
     //-----------------
 
 
@@ -107,6 +110,17 @@ int main(int argc, char** argv)
 
     std::cout << "Array frame size[Bruh function. Only for testing.]: ";
     std::cin >> FRAMES_BUFFER;
+    sf::VideoMode Mode;
+    {
+        auto modes = sf::VideoMode::getFullscreenModes();
+
+        Mode = modes[0];
+        W_X = Mode.width;
+        W_Y = Mode.height;
+        img.create(W_X, W_Y, sf::Color::White);
+        texture.loadFromImage(img);
+        sprite.setTexture(texture);
+    }
 
     sys_log("Create context.");
     cl::Context context(rDevice);
@@ -172,7 +186,7 @@ __buildShader:
 
 #endif
     //------------------
-    sf::RenderWindow window(sf::VideoMode(W_X, W_Y), "M", sf::Style::Default);
+    sf::RenderWindow window(Mode, "M", sf::Style::Fullscreen);
     window.setActive(false);
     
     //@render
@@ -201,9 +215,8 @@ __buildShader:
                     kernel.setArg(8, (double)c1);
     #endif
                     queue.enqueueNDRangeKernel( kernel,
-                                                cl::NDRange(W_X * W_Y * frame_idx),
-                                                cl::NDRange(W_X * W_Y),
-                                                cl::NDRange(rDevice.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>()/2, rDevice.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>()/2));
+                                                cl::NDRange(0),
+                                                cl::NDRange(W_Y * W_X));
                 }
                 kernelMutex.unlock();
                 queue.enqueueReadBuffer(canvas, true, 0, (W_X*W_Y*4*FRAMES_BUFFER), host_canvas);
@@ -322,7 +335,7 @@ __buildShader:
 void fillCanvasPos(uint32_t* canvas)
 {
     for(int canvas_idx = 0; canvas_idx < FRAMES_BUFFER; ++canvas_idx, canvas += W_X*W_Y)
-        for(int x = 0, i = 0; x < W_X; ++x)
-            for(int y = 0; y < W_Y; ++y, ++i)
-                canvas[i] = (y << 16) | x;
+        for(int y = 0, i = 0; y < W_Y; ++y)
+            for(int x = 0; x < W_X; ++x, ++i)
+                canvas[i] = (x << 16) | y;
 }
