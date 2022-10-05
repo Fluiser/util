@@ -19,6 +19,7 @@ __kernel void SHADERMAIN(
     // canvas[idx] = (tx << 16) | ty; // for test
     double tx = x;
     double ty = y;
+    canvas[idx] = 0xffffffff; 
 
 
     for(int i = 0; i < MAX_ITERATIONS; ++i)
