@@ -39,9 +39,6 @@ namespace {
 
 int main(int argc, char** argv)
 {    
-
-    std::fstream file("out.txt");
-
     //just for info
     bool showExtensions = argc >= 2;
     int MAX_ITERATIONS = 25;
