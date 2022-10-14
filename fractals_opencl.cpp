@@ -17,6 +17,7 @@ void fillCanvasPos(uint32_t* canvas);
 
 size_t W_X = 1080;
 size_t W_Y = 1920;
+bool freeze = false;
 
 #define MULTIPLICITY_JULIA
 
@@ -32,7 +33,7 @@ namespace {
 #endif
     double scale_step = 0.01;
     double offset_step = 0.05;
-    size_t FRAMES_BUFFER = 1;
+    const double angle = 0.5*M_PI/180;
 }
 
 int main(int argc, char** argv)
@@ -40,7 +41,7 @@ int main(int argc, char** argv)
 
     //just for info
     bool showExtensions = argc >= 2;
-    int MAX_ITERATIONS = 25;
+    int32_t MAX_ITERATIONS = 25;
 
     setlocale(LC_ALL, "Russian");
     //@init
@@ -66,8 +67,7 @@ int main(int argc, char** argv)
         std::vector<cl::Platform> platforms;
         cl::Platform::get(&platforms);
         std::vector<cl::Device> devices;
-        
-        
+       
         for(size_t i = 0, __index_device = 0; i < platforms.size(); ++i)
         {
             //ohh.. I see you have 256GB ram
@@ -98,16 +98,20 @@ int main(int argc, char** argv)
                 }
             }
         }
-        size_t id = 0;
-        std::cout << ">[index]: ";
-        std::cin >> id;
-        rDevice = devices[id];
-        shitapi_cl.push_back(devices[id]);
-        std::cout << "Selected " << devices[id].getInfo<CL_DEVICE_NAME>() << " device.\n";
+        if (devices.size() > 1)
+        {
+            size_t id = 0;
+            std::cout << ">[index]: ";
+            std::cin >> id;
+            rDevice = devices[id];
+            shitapi_cl.push_back(rDevice);
+        } else {
+            rDevice = devices[0];
+            shitapi_cl.push_back(rDevice);
+        }
+        std::cout << "Selected " << rDevice.getInfo<CL_DEVICE_NAME>() << " device.\n";
     }
 
-    std::cout << "Array frame size[Bruh function. Only for testing.]: ";
-    std::cin >> FRAMES_BUFFER;
     sf::VideoMode Mode;
     {
         auto modes = sf::VideoMode::getFullscreenModes();
@@ -149,9 +153,9 @@ int main(int argc, char** argv)
     cl::CommandQueue queue(context, rDevice); // квеве
 
     sys_log("Alloc canvas.");
-    uint32_t* host_canvas = new uint32_t[W_X*W_Y*FRAMES_BUFFER];
+    uint32_t* host_canvas = new uint32_t[W_X*W_Y];
     // uint32_t* hc = new uint32_t[W_X*W_Y];
-    cl::Buffer canvas(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4 * FRAMES_BUFFER, host_canvas);
+    cl::Buffer canvas(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4, host_canvas);
 
     //-----------------
 __buildShader:
@@ -212,7 +216,7 @@ __buildShader:
 
     std::mutex pipeline_mutex;
     std::vector<const sf::Drawable*> pipeline;
-    pipeline.reserve(256);
+    pipeline.reserve(8);
     
     pipeline.emplace_back(&sprite);
     pipeline.emplace_back(&sinterface);
@@ -224,41 +228,34 @@ __buildShader:
             try{
                 timer.restart();
                 fillCanvasPos(host_canvas);
-                queue.enqueueWriteBuffer(canvas, false, 0, W_X*W_Y*4*FRAMES_BUFFER, host_canvas);
+                queue.enqueueWriteBuffer(canvas, false, 0, W_X*W_Y*4, host_canvas);
                 kernelMutex.lock();
-                for(int frame_idx = 0; frame_idx < FRAMES_BUFFER; ++frame_idx)
-                {
-                    unsigned* canvas_frame = host_canvas + (W_X*W_Y*frame_idx);
-    #ifdef MULTIPLICITY_JULIA
-                    alpha += 0.5*M_PI/180;
-                    c0 = b * sin(alpha);
-                    c1 = b * cos(alpha);
-    #endif
-                    // std::cout << alpha << "(" << (alpha*180/M_PI) << ")" << "\n\t" << c0[0] << "; " << c0[1] << '\n';;
-                    // canvas = cl::Buffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4, host_canvas);
-                    // kernel.setArg(0, canvas);
-    #ifdef MULTIPLICITY_JULIA
-                    kernel.setArg(6, (double)c0);
-                    kernel.setArg(7, (double)c1);
-    #endif
-                    queue.enqueueNDRangeKernel( kernel,
-                                                cl::NDRange(0),
-                                                cl::NDRange(W_Y * W_X));
-                }
+#ifdef MULTIPLICITY_JULIA
+                if(!freeze)
+                    alpha += angle;
+                c0 = b * sin(alpha);
+                c1 = b * cos(alpha);
+#endif
+                // std::cout << alpha << "(" << (alpha*180/M_PI) << ")" << "\n\t" << c0[0] << "; " << c0[1] << '\n';;
+                // canvas = cl::Buffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4, host_canvas);
+                // kernel.setArg(0, canvas);
+#ifdef MULTIPLICITY_JULIA
+                kernel.setArg(6, (double)c0);
+                kernel.setArg(7, (double)c1);
+#endif
+                queue.enqueueNDRangeKernel( kernel,
+                                            cl::NDRange(0),
+                                            cl::NDRange(W_Y * W_X));
                 kernelMutex.unlock();
-                queue.enqueueReadBuffer(canvas, true, 0, (W_X*W_Y*4*FRAMES_BUFFER), host_canvas);
+                queue.enqueueReadBuffer(canvas, true, 0, (W_X*W_Y*4), host_canvas);
                 queue.finish(); // wait all frames
 
                 // frame execution
-                for(int fx = 0; fx < FRAMES_BUFFER; ++fx)
-                {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(30 - timer.getElapsedTime().asMilliseconds()));
-                    timer.restart();
-                    // aliasing(host_canvas);
-                    texture.update((uint8_t*)(host_canvas + (W_X*W_Y*fx)), W_X, W_Y, 0, 0);
-                    sprite.setTexture(texture);
-                    std::lock_guard<std::mutex> r(pipeline_mutex);
-                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(30 - timer.getElapsedTime().asMilliseconds()));
+                timer.restart();
+                texture.update((uint8_t*)(host_canvas), W_X, W_Y, 0, 0);
+                sprite.setTexture(texture);
+                std::lock_guard<std::mutex> r(pipeline_mutex);
             } catch(cl::Error err) {
                 std::cout << err.what() << err.err() << '\n';
             }
@@ -324,6 +321,22 @@ __buildShader:
                 } break;
                 case sf::Event::KeyPressed:
                 {
+                    if(event.key.code == sf::Keyboard::Space)
+                    {
+                        freeze = !freeze;
+                    }
+                    if(event.key.code == sf::Keyboard::Left)
+                    {
+                        alpha -= angle;
+                    }
+                    if(event.key.code == sf::Keyboard::Right)
+                    {
+                        alpha += angle;
+                    }
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+                    {
+                        return 0;
+                    }
                     if(sf::Keyboard::isKeyPressed(sf::Keyboard::W))
                     {
                         std::lock_guard<std::mutex> __(kernelMutex);
@@ -425,8 +438,7 @@ __buildShader:
 
 void fillCanvasPos(uint32_t* canvas)
 {
-    for(int canvas_idx = 0; canvas_idx < FRAMES_BUFFER; ++canvas_idx, canvas += W_X*W_Y)
-        for(int y = 0, i = 0; y < W_Y; ++y)
-            for(int x = 0; x < W_X; ++x, ++i)
-                canvas[i] = (x << 16) | y;
+    for(int y = 0, i = 0; y < W_Y; ++y)
+        for(int x = 0; x < W_X; ++x, ++i)
+            canvas[i] = (x << 16) | y;
 }
