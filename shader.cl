@@ -342,9 +342,7 @@ __kernel void SHADERMAIN(
         	//canvas[idx] = ((long int)(c * 0xffffffff) % 0xffffffff) | 0xff;
             
             unsigned c = 0xff*i/MAX_ITERATIONS;
-            // Если хочешь правильно:
-            // unsigned c = (0xff * (i / MAX_ITERATIONS));
-            canvas[idx] = ((c << 24) | (c << 16) | (c << 8)) | 0x000000ff;
+            canvas[idx] = ((c << 16) | (c << 8) | (c)) | 0xff000000;
             break;
         }
     }
