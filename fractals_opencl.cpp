@@ -309,9 +309,9 @@ __buildShader:
                     offset.y -= ((double)mv.y/(double)W_Y - 0.5)/(double)scale;
                     if(event.key.code == sf::Mouse::Left)
                     {
-                        scale *= 1.6;
+                        scale *= 1.777777777f;
                     } else {
-                        scale /= 1.6;
+                        scale /= 1.777777777f;
                     }
 
                     std::lock_guard<std::mutex> __(kernelMutex);
