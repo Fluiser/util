@@ -21,7 +21,7 @@ bool freeze = false;
 
 #define MULTIPLICITY_JULIA
 
-static double scale = 0.2;
+double scale = 0.2;
 sf::Vector2<double> offset{0.0, 0.0};
 
 namespace {
