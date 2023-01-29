@@ -7,21 +7,14 @@
 #include <vector>
 #include <chrono>
 #include <mutex>
-#include "math.h"
 #include <fstream>
 #include <mutex>
-#include "engine/util.cpp"
 #include <SFML/Window/VideoMode.hpp>
 
-void fillCanvasPos(uint32_t* canvas);
-
-size_t W_X = 1080;
-size_t W_Y = 1920;
-bool freeze = false;
-
+// ----------DEFINES---------
 #define MULTIPLICITY_JULIA
 
-double scale = 0.2;
+static double scale = 0.2;
 sf::Vector2<double> offset{0.0, 0.0};
 
 namespace {
@@ -35,6 +28,31 @@ namespace {
     double offset_step = 0.05;
     const double angle = 0.5*M_PI/180;
 }
+
+#ifdef DEBUG
+#include <iostream>
+#include <string>
+template<class... Args>
+inline void sys_log(Args&&... args)
+{
+    auto t = {
+        (std::cout << args, 0)...
+    };
+
+    (void)t;
+    std::cout << "\n";
+}
+#else
+#define sys_log(x) /* x */
+#endif
+//---------- END D ---------------
+
+void fillCanvasPos(uint32_t* canvas);
+
+size_t W_X = 1080;
+size_t W_Y = 1920;
+bool freeze = false;
+
 
 int main(int argc, char** argv)
 {    
@@ -147,12 +165,12 @@ int main(int argc, char** argv)
     sinterface.setTexture(tinterface);
 }
 
-    sys_log("Create context.");
+    std::cout << "Create context.\n";
     cl::Context context(rDevice);
-    sys_log("Create CommandQueue.");
+    std::cout << "Create CommandQueue.\n";
     cl::CommandQueue queue(context, rDevice); // квеве
 
-    sys_log("Alloc canvas.");
+    std::cout << "Alloc canvas.\n";
     uint32_t* host_canvas = new uint32_t[W_X*W_Y];
     // uint32_t* hc = new uint32_t[W_X*W_Y];
     cl::Buffer canvas(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, W_X * W_Y * 4, host_canvas);
@@ -164,7 +182,7 @@ __buildShader:
     std::string strSourceCode;
     {
         std::fstream sourceCode("shader.cl");
-        if(!sourceCode.is_open())
+        if(sourceCode.fail())
         {
             std::cout << "Can't open file shader. (shader.cl)";
             return -127;
@@ -177,14 +195,14 @@ __buildShader:
             sys_log(e.first, "\t---\t", e.second);
         }
     }
-    sys_log("Create program and build");
+    std::cout << "Create program and build\n";
     cl::Program program(context, source);
     try {
         program.build(shitapi_cl);
     }
     catch (cl::Error err)
     {
-        sys_log(err.what());
+        std::cout << err.what();
         std::string log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(rDevice);
         std::cerr << log << std::endl;
         std::cout << "Repeat?: ";
@@ -193,7 +211,7 @@ __buildShader:
         if (asn != 0) goto __buildShader;
     }
 
-    sys_log("Create kernel");
+    std::cout << "Create kernel\n";
     
     cl::Kernel kernel(program, "SHADERMAIN");
     std::mutex kernelMutex;
@@ -309,9 +327,9 @@ __buildShader:
                     offset.y -= ((double)mv.y/(double)W_Y - 0.5)/(double)scale;
                     if(event.key.code == sf::Mouse::Left)
                     {
-                        scale *= 1.777777777f;
+                        scale *= 1.777;
                     } else {
-                        scale /= 1.777777777f;
+                        scale /= 1.777;
                     }
 
                     std::lock_guard<std::mutex> __(kernelMutex);
