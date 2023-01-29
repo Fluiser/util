@@ -166,7 +166,7 @@ __buildShader:
         std::fstream sourceCode("shader.cl");
         if(!sourceCode.is_open())
         {
-            sys_log("Can't open file shader. (shader.cl)");
+            std::cout << "Can't open file shader. (shader.cl)";
             return -127;
         }
         strSourceCode.assign( (std::istreambuf_iterator<char>(sourceCode)),
