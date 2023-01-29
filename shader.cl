@@ -312,7 +312,7 @@ __kernel void SHADERMAIN(
     double c1 // 7
 )
 {
-    size_t idx = get_global_id(0);
+   size_t idx = get_global_id(0);
     double tx, ty;
     //z
     double2 z;
@@ -326,24 +326,31 @@ __kernel void SHADERMAIN(
 		z = (double2)(x, y);
 	}
 
-    canvas[idx] = 0xffffffff;
 
+    int depht = 0;
 
     for(int i = 0; i < MAX_ITERATIONS; ++i)
     {
+        // Мат. вычисление фрактала
         z = csqr(z);
         z.x += tx;
         z.y += ty;
 
-        if(z.x*z.x + z.y*z.y >= 20)
-        {
-            //трип
-        	//float c = (i - (log (log ((sqrt(z.x*z.x + z.y*z.y))))));
-        	//canvas[idx] = ((long int)(c * 0xffffffff) % 0xffffffff) | 0xff;
-            
-            unsigned c = 0xff*i/MAX_ITERATIONS;
-            canvas[idx] = ((c << 16) | (c << 8) | (c)) | 0xff000000;
-            break;
-        }
+        // А вот это уже не трогай.
+        depht += (unsigned)(z.x*z.x + z.y*z.y >= 20) * (i+1);
     }
+		
+    unsigned c = 0xff*depht/(MAX_ITERATIONS*MAX_ITERATIONS); // Считаем, как быстро возрастало число и делаем из этого картинку.
+    // Если убрать MAX_ITERATIONS^2, то получается depht будет показателем того, как часто число выходило за рамки.
+    // С MAX_ITERATIONS^2 отображает, как быстро увеличивается число.
+    // Возможно, что более правильно использовать адаптивное число MAX_IT, ибо z! возрастает быстрее, чем MAX_IT^n.
+    // Но зачем, если проще когда проще, а использование "малинового цвета" оставляет место для переполнения.
+		
+    // Если убрать (i+1) с 340й строки, depht будет отображать частоту выхода число за интервал,
+    // а не скорость возрастания числа.
+    // Если использовать показатель частоты выхода, то следует убрать MAX_ITERATIONS из степени.
+		
+    
+   
+    canvas[idx] = ((((c)) | 0xff000000)) + ((depht >= 0) * 0xffffffff);
 }
