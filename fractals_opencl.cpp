@@ -248,6 +248,27 @@ __buildShader:
                 fillCanvasPos(host_canvas);
                 queue.enqueueWriteBuffer(canvas, false, 0, W_X*W_Y*4, host_canvas);
                 kernelMutex.lock();
+
+                if(sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                {
+                    auto mv = sf::Mouse::getPosition(window);
+                    offset.x -= 0.15*(((double)mv.x/(double)W_X - 0.5)/(double)scale);
+                    offset.y -= 0.15*(((double)mv.y/(double)W_Y - 0.5)/(double)scale);
+                    scale *= 1.036;
+                    kernel.setArg(3, (double)offset.x);
+                    kernel.setArg(4, (double)offset.y);
+                } else if(sf::Mouse::isButtonPressed(sf::Mouse::Right)) 
+                {
+                    auto mv = sf::Mouse::getPosition(window);
+                    offset.x -= 0.3*(((double)mv.x/(double)W_X - 0.5)/(double)scale);
+                    offset.y -= 0.3*(((double)mv.y/(double)W_Y - 0.5)/(double)scale);
+                    scale /= 1.006;
+                        kernel.setArg(3, (double)offset.x);
+                    kernel.setArg(4, (double)offset.y);
+                }
+                
+
+                kernel.setArg(2, (double)scale);
 #ifdef MULTIPLICITY_JULIA
                 if(!freeze)
                     alpha += angle;
@@ -273,6 +294,7 @@ __buildShader:
                 timer.restart();
                 texture.update((uint8_t*)(host_canvas), W_X, W_Y, 0, 0);
                 sprite.setTexture(texture);
+                
                 std::lock_guard<std::mutex> r(pipeline_mutex);
             } catch(cl::Error err) {
                 std::cout << err.what() << err.err() << '\n';
@@ -322,20 +344,20 @@ __buildShader:
                 } break;
                 case sf::Event::MouseButtonPressed:
                 {
-                    auto mv = sf::Mouse::getPosition(window);
-                    offset.x -= ((double)mv.x/(double)W_X - 0.5)/(double)scale;
-                    offset.y -= ((double)mv.y/(double)W_Y - 0.5)/(double)scale;
-                    if(event.key.code == sf::Mouse::Left)
-                    {
-                        scale *= 1.777;
-                    } else {
-                        scale /= 1.777;
-                    }
+                    // auto mv = sf::Mouse::getPosition(window);
+                    // offset.x -= (((double)mv.x/(double)W_X - 0.5)/(double)scale);
+                    // offset.y -= (((double)mv.y/(double)W_Y - 0.5)/(double)scale);
+                    // if(event.key.code == sf::Mouse::Left)
+                    // {
+                    //     scale *= 1.666;
+                    // } else {
+                    //     scale /= 1.666;
+                    // }
 
-                    std::lock_guard<std::mutex> __(kernelMutex);
-                    kernel.setArg(2, (double)scale);
-                    kernel.setArg(3, (double)offset.x);
-                    kernel.setArg(4, (double)offset.y);
+                    // std::lock_guard<std::mutex> __(kernelMutex);
+                    // kernel.setArg(2, (double)scale);
+                    // kernel.setArg(3, (double)offset.x);
+                    // kernel.setArg(4, (double)offset.y);
                 } break;
                 case sf::Event::KeyPressed:
                 {
