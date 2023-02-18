@@ -313,7 +313,7 @@ __buildShader:
                 window.draw(*dw);
             }
             window.display();
-            std::this_thread::sleep_for(std::chrono::microseconds(30 - timer.getElapsedTime().asMilliseconds()));
+            std::this_thread::sleep_for(std::chrono::milliseconds(30 - timer.getElapsedTime().asMilliseconds()));
             timer.restart();
         }
     });
