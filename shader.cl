@@ -1,4 +1,5 @@
-
+// copy-paste from https://github.com/OpenCL/ComplexMath/blob/master/clcomplex.h
+// but modify: add sqr
 #define OPENCL_COMPLEX_MATH_USE_DOUBLE
 
 #ifndef OPENCL_COMPLEX_MATH
