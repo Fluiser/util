@@ -58,3 +58,4 @@ void pow_complex(double* mx, const double* z)
     multi_complex(mx, z, mx);
     exp_complex(mx);
 }
+// не пользуйся этим.
