@@ -1,6 +1,6 @@
 // Better use objdump -flags file > output.txt
 // but it's made for reminders how to get output from executable file.
-// ...
+// 
 
 #ifdef linux
 #define _open popen
