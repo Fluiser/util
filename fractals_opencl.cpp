@@ -1,7 +1,7 @@
 #include <SFML/Graphics.hpp>
 #define _USE_MATH_DEFINES
 #define __CL_ENABLE_EXCEPTIONS
-#include <CL/cl.hpp>
+#include <CL/opencl.hpp>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -63,14 +63,12 @@ int main(int argc, char** argv)
 
     setlocale(LC_ALL, "Russian");
     //@init
-    sf::Event event;
     sf::Image img;
 #ifdef MULTIPLICITY_JULIA
     c0= b * sin(alpha);
     c1= b * cos(alpha);
 #endif
     sf::Texture texture;
-    sf::Sprite sprite;
 
 
     //-----------------
@@ -131,39 +129,39 @@ int main(int argc, char** argv)
     }
 
     sf::VideoMode Mode;
-    {
-        auto modes = sf::VideoMode::getFullscreenModes();
+    
+    auto modes = sf::VideoMode::getFullscreenModes();
 
-        Mode = modes[0];
-        W_X = Mode.width;
-        W_Y = Mode.height;
-        img.create(W_X, W_Y, sf::Color::White);
-        texture.loadFromImage(img);
-        sprite.setTexture(texture);
-    }
+    Mode = modes[0];
+    W_X = (size_t)Mode.size.x;
+    W_Y = (size_t)Mode.size.y;
+    img.resize({(unsigned)W_X, (unsigned)W_Y});
+    texture.loadFromImage(img);
+    sf::Sprite sprite(texture);
+        
+    
 
     sf::Texture tinterface;
-    sf::Sprite sinterface;
-{        
+       
     sf::Image iinterface;
-    iinterface.create(
-        W_X * 0.6,
-        W_Y * 0.6,
+    iinterface.resize(
+        {(unsigned)((float)W_X * 0.6),
+        (unsigned)((float)W_Y * 0.6)},
         sf::Color(0)
     );
     for(int x = 0; x < (W_X * 0.6); ++x)
     {   
-        iinterface.setPixel(x, 0, sf::Color(0xff7f));
-        iinterface.setPixel(x, (W_Y * 0.6) - 1, sf::Color(0xff7f));
+        iinterface.setPixel({(unsigned)x, 0}, sf::Color(0xff7f));
+        iinterface.setPixel({(unsigned)x, (unsigned)(W_Y * 0.6) - 1}, sf::Color(0xff7f));
     }
     for(int y = 1; y < ((W_Y * 0.6)-1); ++y)
     {   
-        iinterface.setPixel(0, y, sf::Color(0xff7f));
-        iinterface.setPixel((W_X * 0.6)-1, y, sf::Color(0xff7f));
+        iinterface.setPixel({0, (unsigned)y}, sf::Color(0xff7f));
+        iinterface.setPixel({(unsigned)(W_X * 0.6)-1, (unsigned)y}, sf::Color(0xff7f));
     }
     tinterface.loadFromImage(iinterface);
-    sinterface.setTexture(tinterface);
-}
+    sf::Sprite sinterface(tinterface);
+
 
     std::cout << "Create context.\n";
     cl::Context context(rDevice);
@@ -189,7 +187,7 @@ __buildShader:
         }
         strSourceCode.assign( (std::istreambuf_iterator<char>(sourceCode)),
                     (std::istreambuf_iterator<char>()));
-        source.push_back(std::make_pair(strSourceCode.c_str(), strSourceCode.size()));
+        source.push_back(strSourceCode.c_str());
         for(const auto& e: source)
         {
             sys_log(e.first, "\t---\t", e.second);
@@ -229,7 +227,7 @@ __buildShader:
 
 #endif
     //------------------
-    sf::RenderWindow window(Mode, "M", sf::Style::Fullscreen);
+    sf::RenderWindow window(Mode, "M");
     window.setActive(false);
 
     std::mutex pipeline_mutex;
@@ -237,7 +235,7 @@ __buildShader:
     pipeline.reserve(8);
     
     pipeline.emplace_back(&sprite);
-    pipeline.emplace_back(&sinterface);
+    // pipeline.emplace_back(&sinterface);
     //@render
     std::thread renderThread([&]{
         sf::Clock timer;
@@ -249,7 +247,7 @@ __buildShader:
                 queue.enqueueWriteBuffer(canvas, false, 0, W_X*W_Y*4, host_canvas);
                 kernelMutex.lock();
 
-                if(sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
                 {
                     auto mv = sf::Mouse::getPosition(window);
                     offset.x -= 0.15*(((double)mv.x/(double)W_X - 0.5)/(double)scale);
@@ -257,12 +255,12 @@ __buildShader:
                     scale *= 1.036;
                     kernel.setArg(3, (double)offset.x);
                     kernel.setArg(4, (double)offset.y);
-                } else if(sf::Mouse::isButtonPressed(sf::Mouse::Right)) 
+                } else if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)) 
                 {
                     auto mv = sf::Mouse::getPosition(window);
                     offset.x -= 0.3*(((double)mv.x/(double)W_X - 0.5)/(double)scale);
                     offset.y -= 0.3*(((double)mv.y/(double)W_Y - 0.5)/(double)scale);
-                    scale /= 1.006;
+                    scale /= 1.066;
                         kernel.setArg(3, (double)offset.x);
                     kernel.setArg(4, (double)offset.y);
                 }
@@ -292,7 +290,7 @@ __buildShader:
                 // frame execution
                 std::this_thread::sleep_for(std::chrono::milliseconds(30 - timer.getElapsedTime().asMilliseconds()));
                 timer.restart();
-                texture.update((uint8_t*)(host_canvas), W_X, W_Y, 0, 0);
+                texture.update((uint8_t*)(host_canvas));
                 sprite.setTexture(texture);
                 
                 std::lock_guard<std::mutex> r(pipeline_mutex);
@@ -323,26 +321,28 @@ __buildShader:
     //@events
     while(window.isOpen())
     {
-        while(window.waitEvent(event))
+        while(const std::optional event = window.waitEvent())
         {
-            switch(event.type)
-            {
-                case sf::Event::Closed:
+            
+            
+                if(event->is<sf::Event::Closed>())
                     return 1;
-                case sf::Event::MouseWheelScrolled:
+                if(const auto* mouse = event->getIf<sf::Event::MouseWheelScrolled>())
                 {
                     std::lock_guard<std::mutex> __(kernelMutex);
-                    MAX_ITERATIONS += (event.mouseWheelScroll.delta);
+                    MAX_ITERATIONS += (mouse->delta);
                     kernel.setArg(5, MAX_ITERATIONS);
                     std::cout << MAX_ITERATIONS << '\n';
                     continue;
-                } break;
-                case sf::Event::MouseMoved:
+                }
+                if(const auto* mouse = event->getIf<sf::Event::MouseMoved>())
                 {
                     auto mv = sf::Mouse::getPosition(window);
-                    sinterface.setPosition(mv.x - W_X * 0.3, mv.y - W_Y * 0.3);
-                } break;
-                case sf::Event::MouseButtonPressed:
+                    sinterface.setPosition({
+                        (float)((float)mv.x - (float)W_X * 0.3),
+                        (float)((float)mv.y - (float)W_Y * 0.3)});
+                }
+                if(event->is<sf::Event::MouseButtonPressed>())
                 {
                     // auto mv = sf::Mouse::getPosition(window);
                     // offset.x -= (((double)mv.x/(double)W_X - 0.5)/(double)scale);
@@ -358,92 +358,92 @@ __buildShader:
                     // kernel.setArg(2, (double)scale);
                     // kernel.setArg(3, (double)offset.x);
                     // kernel.setArg(4, (double)offset.y);
-                } break;
-                case sf::Event::KeyPressed:
+                }
+                if(const auto* key = event->getIf< sf::Event::KeyPressed >())
                 {
-                    if(event.key.code == sf::Keyboard::Space)
+                    if(key->scancode == sf::Keyboard::Scan::Space)
                     {
                         freeze = !freeze;
                     }
-                    if(event.key.code == sf::Keyboard::Left)
+                    if(key->scancode == sf::Keyboard::Scan::Left)
                     {
                         alpha -= angle;
                     }
-                    if(event.key.code == sf::Keyboard::Right)
+                    if(key->scancode == sf::Keyboard::Scan::Right)
                     {
                         alpha += angle;
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Escape))
                     {
                         return 0;
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::W))
                     {
                         std::lock_guard<std::mutex> __(kernelMutex);
                         offset.y += offset_step;
                         kernel.setArg(4, (double)offset.y);
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::S))
                     {
                         std::lock_guard<std::mutex> __(kernelMutex);
                         offset.y -= offset_step;
                         kernel.setArg(4, (double)offset.y);
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::A))
                     {
                         std::lock_guard<std::mutex> __(kernelMutex);
                         offset.x += offset_step;
                         kernel.setArg(3, (double)offset.x);
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D))
                     {
                         std::lock_guard<std::mutex> __(kernelMutex);
                         offset.x -= offset_step;
                         kernel.setArg(3, (double)offset.x);
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::U))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::U))
                     {
                         std::lock_guard<std::mutex> __(kernelMutex);
                         scale += scale_step;
                         kernel.setArg(2, (double)scale);
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::I))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::I))
                     {
                         std::lock_guard<std::mutex> __(kernelMutex);
                         scale -= scale_step;
                         kernel.setArg(2, (double)scale);
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad9))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Numpad9))
                     {
                         scale_step += 5;
                         std::cout << scale_step << "\n";
                         break;
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad3))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Numpad3))
                     {
                         scale_step -= 5;
                         std::cout << scale_step << "\n";
                         break;
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad7))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Numpad7))
                     {
                         offset_step += 0.01;
                         std::cout << offset_step << "\n";
                         break;
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad1))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Numpad1))
                     {
                         offset_step -= 0.01;
                         std::cout << offset_step << "\n";
                         break;
                     }
-                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad5))
+                    if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Numpad5))
                     {
                         std::cin >> offset_step >> scale_step;
                         std::cout << offset_step  << " - " << scale_step << "\n";
                         break;
                     }
-                    if(event.key.code == sf::Keyboard::F10)
+                    if(key->scancode == sf::Keyboard::Scan::F10)
                     {
                         std::lock_guard<std::mutex> _(pipeline_mutex);
                         bool dontExists = true;
@@ -460,16 +460,15 @@ __buildShader:
                         if(dontExists)
                             pipeline.emplace_back(&sinterface);
                     }
-                    if(event.key.code == sf::Keyboard::K)
+                    if(key->scancode == sf::Keyboard::Scan::K)
                     {
                         std::cout   << "-----------------------\nOFFSET: " << offset.x << "; " << offset.y 
                                     << "\nSCALE: " << scale
                                     << "\nOFFSET AND SCALE STEP: " << offset_step << "; " << scale_step
                                     << "\nMOUSE POS " << sf::Mouse::getPosition(window).x << " " << sf::Mouse::getPosition(window).y
                                     <<"\n-----------------------\n"; 
-                    } break;
+                    }
                 } break;
-            }
         }
     }
     //-----------------
