@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     for (unsigned x = 0; x < img.getSize().x; x += step_x) {
       auto c = img.getPixel(sf::Vector2u{x, y});
 
-      float power = (c.r + c.g + c.b) / 3.0f / 255.0f * (float)powerset.size();
+      float power = (c.r + c.g + c.b) / 3.0f / 255.0f * ((float)powerset.size() - 1);
       int idx = static_cast<int>(power);
 
       if (XOR)
