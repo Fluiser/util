@@ -338,7 +338,7 @@ __kernel void SHADERMAIN(
         z.y += ty;
 
         // А вот это уже не трогай.
-        depht += ((z.x*z.x + z.y*z.y >= 2) * (i+1)); // показатель частоты выхода за пределы
+        depht += ((z.x*z.x + z.y*z.y >= 4) * (i+1)); // показатель частоты выхода за пределы
     }
 		
     unsigned c = 255.0f * (depht / (((float)MAX_ITERATIONS * ((float)MAX_ITERATIONS + 1.0f))/2.0f)); // (частота выходов / макс. кол-во выходов) * 0xff
